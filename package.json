@@ -4,8 +4,14 @@
   "description": "Provides interactive stream experiences in response to events from the twitch API",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "ws": "^8.19.0"
+  }
 }

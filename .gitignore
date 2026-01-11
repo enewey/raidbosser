@@ -1,1 +1,3 @@
-.env.secret
+.env
+.claude
+node_modules
