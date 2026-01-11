@@ -1,0 +1,11 @@
+{
+  "name": "raidboss",
+  "version": "0.1.0",
+  "description": "Provides interactive stream experiences in response to events from the twitch API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
