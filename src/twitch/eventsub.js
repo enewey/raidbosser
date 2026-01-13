@@ -1,47 +1,21 @@
 const WebSocket = require('ws');
 const EventEmitter = require('events');
+const TwitchUAT = require('./uat');
 
 const TWITCH_EVENTSUB_WS_URL = 'wss://eventsub.wss.twitch.tv/ws';
-const TWITCH_AUTH_URL = 'https://id.twitch.tv/oauth2/token';
 const TWITCH_API_URL = 'https://api.twitch.tv/helix';
 
 class TwitchEventSub extends EventEmitter {
-  constructor(clientId, clientSecret) {
+  constructor(clientId) {
     super();
     this.clientId = clientId;
-    this.clientSecret = clientSecret;
-    this.accessToken = null;
     this.sessionId = null;
     this.ws = null;
     this.keepaliveTimeout = null;
     this.reconnectUrl = null;
   }
 
-  async getAccessToken() {
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      client_secret: this.clientSecret,
-      grant_type: 'client_credentials'
-    });
-
-    const response = await fetch(`${TWITCH_AUTH_URL}?${params}`, {
-      method: 'POST'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get access token: ${response.status}`);
-    }
-
-    const data = await response.json();
-    this.accessToken = data.access_token;
-    return this.accessToken;
-  }
-
   async connect() {
-    if (!this.accessToken) {
-      await this.getAccessToken();
-    }
-
     const url = this.reconnectUrl || TWITCH_EVENTSUB_WS_URL;
     this.ws = new WebSocket(url);
 
@@ -120,7 +94,7 @@ class TwitchEventSub extends EventEmitter {
     }
   }
 
-  async subscribe(type, condition, version = '1') {
+  async subscribe(type, condition, version = '1', isRetry = false) {
     if (!this.sessionId) {
       throw new Error('Not connected. Call connect() first and wait for ready event.');
     }
@@ -128,7 +102,7 @@ class TwitchEventSub extends EventEmitter {
     const response = await fetch(`${TWITCH_API_URL}/eventsub/subscriptions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${TwitchUAT.getInstance().accessToken}`,
         'Client-Id': this.clientId,
         'Content-Type': 'application/json'
       },
@@ -142,6 +116,13 @@ class TwitchEventSub extends EventEmitter {
         }
       })
     });
+
+    // Handle token expiration - refresh and retry once
+    if (response.status === 401 && !isRetry && TwitchUAT.getInstance().canRefresh()) {
+      console.log('Access token expired, refreshing...');
+      await TwitchUAT.getInstance().refresh();
+      return this.subscribe(type, condition, version, true);
+    }
 
     if (!response.ok) {
       const error = await response.json();
@@ -163,28 +144,12 @@ class TwitchEventSub extends EventEmitter {
     this.reconnectUrl = null;
   }
 
-  async getUserId(username) {
-    if (!this.accessToken) {
-      await this.getAccessToken();
-    }
-
-    const response = await fetch(`${TWITCH_API_URL}/users?login=${encodeURIComponent(username)}`, {
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Client-Id': this.clientId
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get user ID: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.data || data.data.length === 0) {
-      throw new Error(`User not found: ${username}`);
-    }
-
-    return data.data[0].id;
+  async subscribeToChannelPointRedemption(broadcasterUserId, rewardId) {
+    const condition = {
+      broadcaster_user_id: broadcasterUserId,
+      reward_id: rewardId
+    };
+    return this.subscribe('channel.channel_points_custom_reward_redemption.add', condition);
   }
 }
 
