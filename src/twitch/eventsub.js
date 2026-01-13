@@ -126,7 +126,8 @@ class TwitchEventSub extends EventEmitter {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Failed to subscribe to ${type}: ${JSON.stringify(error)}`);
+      console.error(`Failed to subscribe to ${type}: ${JSON.stringify(error)}. Visit http://localhost:3000/auth/twitch to re-authorize, and then restart the server after the new tokens are saved`);
+      return null;
     }
 
     const data = await response.json();

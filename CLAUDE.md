@@ -20,7 +20,8 @@ src/
 ├── index.js          # Express server, OAuth flow, WebSocket server
 ├── env.js            # Environment config and .env file management
 ├── public/
-│   └── index.html    # Stream overlay (canvas-based raid notifications)
+│   ├── index.html    # Stream overlay HTML shell
+│   └── game.js       # Overlay logic (canvas rendering, WebSocket, raid notifications)
 └── twitch/
     ├── api.js        # Twitch Helix API client
     ├── eventsub.js   # EventSub WebSocket client for real-time events

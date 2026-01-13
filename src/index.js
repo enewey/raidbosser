@@ -17,7 +17,8 @@ const SCOPES = [
   'channel:read:subscriptions',
   'bits:read',
   'moderator:read:followers',
-  'channel:read:redemptions'
+  'channel:read:redemptions',
+  'user:read:chat'
 ].join(' ');
 
 // OAuth: Start authorization flow
@@ -135,6 +136,12 @@ if (eventSub) {
     // Subscribe to incoming raids
     await eventSub.subscribe('channel.raid', { to_broadcaster_user_id: userId });
 
+    // Subscribe to chat messages
+    await eventSub.subscribe('channel.chat.message', {
+      broadcaster_user_id: userId,
+      user_id: userId
+    });
+
     // Subscribe to channel point redemptions if reward ID is configured
     if (env.twitchRewardId) {
       await eventSub.subscribeToChannelPointRedemption(userId, env.twitchRewardId);
@@ -166,11 +173,7 @@ if (eventSub) {
           profileImageUrl: raiderProfile.profileImageUrl
         }
       });
-      overlayClients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(raidEvent);
-        }
-      });
+      sendEventToClients(raidEvent);
     }
 
     if (type === 'channel.channel_points_custom_reward_redemption.add') {
@@ -188,16 +191,31 @@ if (eventSub) {
           userInput: user_input || null
         }
       });
-      overlayClients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(redemptionEvent);
+      sendEventToClients(redemptionEvent);
+    }
+
+    if (type === 'channel.chat.message') {
+      const chatEvent = JSON.stringify({
+        type: 'chat',
+        data: {
+          username: data.chatter_user_name,
+          message: data.message.text
         }
       });
+      sendEventToClients(chatEvent);
     }
   });
 
   eventSub.on('error', (error) => {
     console.error('EventSub error:', error);
+  });
+}
+
+function sendEventToClients(event) {
+  overlayClients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(event);
+    }
   });
 }
 
