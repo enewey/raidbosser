@@ -4,7 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Raidboss provides interactive stream experiences in response to events from the Twitch API.
+Raidbosser is a Twitch stream overlay that creates interactive "raid boss" experiences. When someone raids the channel, the raider appears as a boss with HP equal to the viewer count. Chat messages damage the boss (1 HP per message), and when HP reaches 0, the boss is defeated.
+
+### Core Flow
+1. Server connects to Twitch EventSub for real-time events (raids, chat, channel points)
+2. Events are broadcast to overlay clients via WebSocket
+3. The canvas overlay renders raid notifications and tracks boss HP
+
+### Testing
+- `/test/raid?name=TestUser&viewers=50` - Simulates a raid without a real Twitch event
+
+### Authentication
+1. Visit `/auth/twitch` to start OAuth flow
+2. Tokens are saved to `.env` automatically
+3. Restart server to connect with new tokens
 
 ## Development Commands
 
